@@ -31,12 +31,13 @@
 		'\uD83D\uDE0E',
 		'\uD83D\uDE18',
 		'\uD83D\uDE31',
-	];
+  ];
+  let curPolyline = [];
 
-	let timerId;
-	let runningPlayerIndex;
 	let playersData = [];
-	let isAnimating = false;
+  let isAnimating = false;
+  let people = [];
+  let playersIsRunning = [];
   
   let canvasEl;
   fabric.Object.prototype.transparentCorners = false;
@@ -47,27 +48,76 @@
 		let canvas = new fabric.Canvas(canvasEl, {
       backgroundColor: '#a4a4a5',
       selectionColor: 'transparent',
-      selectionLineWidth: 0
+      selectionLineWidth: 0,
     });
-    canvas.on('mouse:down', function(options) {
+    canvas.on('mouse:down', async function(options) {
       if (options.target) {
-        console.log('an object was clicked! ', options.target.type);
-        runPlayerIndex(canvas, options.target.index);
+        if (isAnimating === true) {
+          return;
+        }
+        await runPlayerIndex(canvas, options.target.index);
       }
     });
     initGame(canvas);
   });
 
-  function runPlayerIndex(canvas, playerIndex) {
+  function animate(canvas, obj, playerIndex, params, duration) {
+    return new Promise((resolve) => {
+      people[playerIndex].animate({ top: params.y2 - (CHARACTER_SIZE / 2), left: params.x2 - (CHARACTER_SIZE / 2) }, {
+        duration
+      });
+      obj.animate({ x2: params.x2 - 2, y2: params.y2 - 2 }, {
+        onChange: function() {
+          people[playerIndex].bringToFront();
+          canvas.renderAll.bind(canvas);
+        },
+        onComplete: function() {
+          obj.setCoords();
+          resolve();
+        },
+        duration
+      });
+    });
+  }
+
+  async function runPlayerIndex(canvas, playerIndex) {
+    if (playersIsRunning[playerIndex]) {
+      return;
+    }
+    people[playerIndex].bringToFront();
+    isAnimating = true;
     const path = playersData[playerIndex];
-    var polyline = new fabric.Polyline(path, { 
+    if (curPolyline.length > 0) {
+      canvas.remove(...curPolyline);
+      curPolyline = [];
+    }
+
+    for(let i = 0;i < path.length - 1; i++) {
+      const L = new fabric.Line([path[i].x - 2, path[i].y - 2, path[i].x - 2, path[i].y - 2], {
         fill: 'transparent', 
+        strokeLineJoin: 'round',
+        strokeLineCap: 'round',
         stroke: colors[playerIndex],
         strokeWidth: 5,
         selectable: false,
         evented: false,
-    });
-    canvas.add(polyline);
+      });
+      curPolyline.push(L);
+    }
+    for(let i = 0;i < path.length - 1; i++) {
+      const L = curPolyline[i];
+      canvas.add(L);
+
+      // pixel에 길이에 해당하는 속도를 계산
+      const duration = Math.abs((path[i].x === path[i + 1].x) ? path[i + 1].y - path[i].y : path[i + 1].x - path[i].x) * 5;
+
+      await animate(canvas, L, playerIndex, {
+        x2: path[i + 1].x,
+        y2: path[i + 1].y
+      }, duration);
+    }
+    isAnimating = false;
+    playersIsRunning[playerIndex] = true;
   }
 
   function makeLineWithBlack(coords) {
@@ -107,7 +157,7 @@
     }
     canvas.add(...lines);
 
-    const people = [];
+    people = [];
     for (let x = 0; x < xSize; x++) {
       var person = new fabric.Text(characters[x], {
         fontSize: CHARACTER_SIZE,
@@ -117,12 +167,14 @@
         lockMovementY: true,
         hasBorders: false,
         hasControls: false,
-        index: x
+        index: x,
+        hoverCursor: 'pointer'
       });
       people.push(person);
     }
 
     canvas.add(...people);
+
   }
   
   function clearBoard() {
@@ -169,7 +221,6 @@
 			let y = 0, preY = 0, preX = x;
 			let path = [];
 			path.push({ x: BORDER_SIZE + (CELL_WIDTH * x), y: BORDER_SIZE });
-			path.push({ x: BORDER_SIZE + (CELL_WIDTH * x), y: BORDER_SIZE + Y_GAP + (CELL_HEIGHT * y) });
 
 			do {
 				while(y < ySize) {
@@ -192,6 +243,11 @@
 				y++;
 			} while(true);
 
+      if (preX === x) {
+        // 마지막껄 지운다.
+        path.pop();
+      }
+
 			path.push({ x: BORDER_SIZE + (CELL_WIDTH * x), y: BORDER_SIZE + Y_GAP + (CELL_HEIGHT * (ySize - 1)) + Y_GAP });
 
 			playersData.push(path);
@@ -200,7 +256,7 @@
 </script>
 
 <main>
-  <h1>Hello World</h1>
+  <h1>사다리 타기</h1>
 	<canvas bind:this={canvasEl} width="500" height="300" />
 </main>
 
