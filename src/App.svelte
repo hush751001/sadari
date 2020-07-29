@@ -2,22 +2,29 @@
 	import { fabric } from "fabric";
 	import { onMount } from 'svelte';
 
-  const BORDER_SIZE = 40;
-	const CELL_WIDTH = 120;
-	const CELL_HEIGHT = 44;
-  const Y_GAP = 60;
-  const CHARACTER_SIZE = 40;
-	let board = [];
+  let BORDER_SIZE = 40;
+	let CELL_WIDTH = 120;
+	let CELL_HEIGHT = 44;
+  let Y_GAP = 60;
+  let CHARACTER_SIZE = 40;
+  let ONE_PIXEL = 1;
+  let pixelRatio = devicePixelRatio;
 
-	let playerCount = 6;
-	const xSize = playerCount;
-	const ySize = 10;
-	const boardSize = {
+	let playerCount = 3;
+	let xSize = playerCount;
+	let ySize = 10;
+	let boardSize = {
 		width: (xSize - 1) * CELL_WIDTH + BORDER_SIZE * 2,
 		height: (ySize - 1) * CELL_HEIGHT + BORDER_SIZE * 2 + Y_GAP * 2,
   };
   let colors = [
 		'#ff0000',
+		'#ffff00',
+		'#ff00ff',
+		'#00ff00',
+		'#00ffff',
+    '#0000ff',
+    '#ff0000',
 		'#ffff00',
 		'#ff00ff',
 		'#00ff00',
@@ -30,8 +37,16 @@
 		'\uD83D\uDE0D',
 		'\uD83D\uDE0E',
 		'\uD83D\uDE18',
-		'\uD83D\uDE31',
+    '\uD83D\uDE31',
+    '\uD83D\uDE22',
+		'\uD83D\uDE24',
+		'\uD83D\uDE26',
+		'\uD83D\uDE28',
+		'\uD83D\uDE2C',
+		'\uD83D\uDE2D',
   ];
+
+  let board = [];
   let curPolyline = [];
 
 	let playersData = [];
@@ -41,24 +56,11 @@
   
   let canvasEl;
   fabric.Object.prototype.transparentCorners = false;
+  let fabricCanvas;
+
 
 	onMount(() => {
-    canvasEl.setAttribute('width', boardSize.width);
-		canvasEl.setAttribute('height', boardSize.height);
-		let canvas = new fabric.Canvas(canvasEl, {
-      backgroundColor: '#a4a4a5',
-      selectionColor: 'transparent',
-      selectionLineWidth: 0,
-    });
-    canvas.on('mouse:down', async function(options) {
-      if (options.target) {
-        if (isAnimating === true) {
-          return;
-        }
-        await runPlayerIndex(canvas, options.target.index);
-      }
-    });
-    initGame(canvas);
+    initGame();
   });
 
   function animate(canvas, obj, playerIndex, params, duration) {
@@ -98,7 +100,7 @@
         strokeLineJoin: 'round',
         strokeLineCap: 'round',
         stroke: colors[playerIndex],
-        strokeWidth: 5,
+        strokeWidth: 5 * ONE_PIXEL,
         selectable: false,
         evented: false,
       });
@@ -124,13 +126,55 @@
     return new fabric.Line(coords, {
       fill: 'black',
       stroke: 'black',
-      strokeWidth: 2,
+      strokeWidth: 2 * ONE_PIXEL,
       selectable: false,
       evented: false,
     });
   }
 
-  function initGame(canvas) {
+  function initGame() {
+
+    board = [];
+    curPolyline = [];
+    playersData = [];
+    isAnimating = false;
+    people = [];
+    playersIsRunning = [];
+
+    xSize = playerCount;
+    ySize = 10;
+    boardSize = {
+      width: (xSize - 1) * CELL_WIDTH + BORDER_SIZE * 2,
+      height: (ySize - 1) * CELL_HEIGHT + BORDER_SIZE * 2 + Y_GAP * 2,
+    };
+
+    canvasEl.setAttribute('width', (boardSize.width) + 'px');
+    canvasEl.setAttribute('height', (boardSize.height) + 'px');
+
+    let canvas;
+    if (fabricCanvas) {
+      canvas = fabricCanvas;
+      canvas.setWidth(boardSize.width);
+      canvas.clear();
+      canvas.setBackgroundColor('#a4a4a5');
+    } else {
+      canvas = new fabric.Canvas(canvasEl, {
+        backgroundColor: '#a4a4a5',
+        selectionColor: 'transparent',
+        selectionLineWidth: 0,
+      });
+      canvas.on('mouse:down', async function(options) {
+        if (options.target) {
+          if (isAnimating === true) {
+            return;
+          }
+          await runPlayerIndex(canvas, options.target.index);
+        }
+      });
+
+      fabricCanvas = canvas;
+    }
+
 
     clearBoard();
     genRandomLines();
@@ -252,20 +296,48 @@
 
 			playersData.push(path);
 		}
-	}
+  }
+  
+  function handleStartClick() {
+    initGame();
+  }
 </script>
 
-<main>
-  <h1>사다리 타기</h1>
-	<canvas bind:this={canvasEl} width="500" height="300" />
+<main style="overflow:auto;">
+  <header>
+    <h1>사다리 타기</h1>
+    <div>
+        <input type="number" bind:value={playerCount} min="2" max="12" placeholder="참가자수" />
+        <button on:click={handleStartClick}>시작</button>
+    </div>
+  </header>
+  
+  <canvas
+    bind:this={canvasEl} 
+  />
 </main>
 
 <style>
 	main {
-		padding: 1em;
+		padding: 0em;
 	}
 
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 	h1 {
 		color: #ff3e00;
-	}
+  }
+
+  input[type="number"] {
+    width: 60px;
+    margin-left: 20px;
+  }
+
+  :global(.canvas-container) {
+    margin: 0 auto;
+  }
+  
 </style>
