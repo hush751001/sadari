@@ -2,15 +2,14 @@
   import { fabric } from "fabric";
   import { onMount } from 'svelte';
 
-  let BORDER_SIZE = 40;
-  let CELL_WIDTH = 120;
-  let CELL_HEIGHT = 44;
-  let Y_GAP = 60;
+  let BORDER_SIZE = 30;
+  let CELL_WIDTH = 100;
+  let CELL_HEIGHT = 34;
+  let Y_GAP = 50;
   let CHARACTER_SIZE = 40;
   let ONE_PIXEL = 1;
-  let pixelRatio = devicePixelRatio;
 
-  let playerCount = 3;
+  let playerCount = 4;
   let xSize = playerCount;
   let ySize = 10;
   let boardSize = {
@@ -58,6 +57,7 @@
   fabric.Object.prototype.transparentCorners = false;
   let fabricCanvas;
 
+  let results = [];
 
   onMount(() => {
     initGame();
@@ -140,6 +140,8 @@
     isAnimating = false;
     people = [];
     playersIsRunning = [];
+
+    results = Array(playerCount).fill().map((_, i) => i + 1);
 
     xSize = playerCount;
     ySize = 10;
@@ -301,6 +303,10 @@
   function handleStartClick() {
     initGame();
   }
+
+  window.onbeforeunload = () => {
+    return '종료 확인?';
+  };
 </script>
 
 <main style="overflow:auto;">
@@ -311,10 +317,14 @@
         <button on:click={handleStartClick}>시작</button>
     </div>
   </header>
-  
-  <canvas
-    bind:this={canvasEl} 
-  />
+  <div class="canvas-wrapper">
+    <canvas bind:this={canvasEl} />
+    <div class="result-inputs">
+      {#each results as result}
+        <input type="text" bind:value={result} />
+      {/each}
+    </div>
+  </div>
 </main>
 
 <style>
@@ -339,5 +349,19 @@
   :global(.canvas-container) {
     margin: 0 auto;
   }
+
+  .canvas-wrapper {
+    overflow: auto;
+  }
   
+  .result-inputs {
+    display: flex;
+  }
+  .result-inputs input:first-child {
+    margin-left: 5px;
+  }
+  .result-inputs input {
+    width: 50px;
+    margin: 10px 25px;
+  }
 </style>
