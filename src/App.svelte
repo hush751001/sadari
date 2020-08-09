@@ -164,8 +164,9 @@
         backgroundColor: '#a4a4a5',
         selectionColor: 'transparent',
         selectionLineWidth: 0,
+        allowTouchScrolling: true
       });
-      canvas.on('mouse:down', async function(options) {
+      canvas.on('mouse:up', async function(options) {
         if (options.target) {
           if (isAnimating === true) {
             return;
@@ -221,6 +222,7 @@
 
     canvas.add(...people);
 
+    boardSize.width;
   }
   
   function clearBoard() {
@@ -299,8 +301,20 @@
       playersData.push(path);
     }
   }
+
+  function handleInputKeydown(e) {
+    if (e.key === 'Enter') {
+      handleStartClick();
+    }
+  }
   
   function handleStartClick() {
+    if (playerCount > 12) {
+      playerCount = 12;
+    }
+    if (playerCount < 2) {
+      playerCount = 2;
+    }
     initGame();
   }
 
@@ -313,13 +327,14 @@
   <header>
     <h1>사다리 타기</h1>
     <div>
-        <input type="number" bind:value={playerCount} min="2" max="12" placeholder="참가자수" />
+        <input type="number" bind:value={playerCount} min="2" max="12" placeholder="참가자수" on:keyup={handleInputKeydown} />
         <button on:click={handleStartClick}>시작</button>
     </div>
   </header>
   <div class="canvas-wrapper">
     <canvas bind:this={canvasEl} />
-    <div class="result-inputs">
+    <div class="canvas-over" style={`width: ${boardSize.width}px;height: ${boardSize.height - 60}px;`}></div>
+    <div class="result-inputs" style={`width: ${boardSize.width}px;`}>
       {#each results as result}
         <input type="text" bind:value={result} />
       {/each}
@@ -352,10 +367,12 @@
 
   .canvas-wrapper {
     overflow: auto;
+    position: relative;
   }
   
   .result-inputs {
     display: flex;
+    margin: 0 auto;
   }
   .result-inputs input:first-child {
     margin-left: 5px;
@@ -363,5 +380,11 @@
   .result-inputs input {
     width: 50px;
     margin: 10px 25px;
+    text-align: center;
+  }
+  .canvas-over {
+    position: absolute;
+    top: 60px;
+    left: 0;
   }
 </style>
